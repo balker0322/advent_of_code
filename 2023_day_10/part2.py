@@ -60,7 +60,8 @@ def get_neighbors(node, g, max_r, max_c):
             continue
 
 def print_node(node, max_r, max_c, g):
-    _, visited_tiles = node
+    # return
+    visited_tiles = node
     print()
     for r in range(max_r):
         row = []
@@ -68,7 +69,7 @@ def print_node(node, max_r, max_c, g):
             if (r,c) in visited_tiles:
                 row.append(g[r][c])
                 continue
-            row.append('.')
+            row.append('@')
         print(row)
     
 def print_n(coor, n, g):
@@ -117,12 +118,62 @@ def main():
                 if d > max_d:
                     # print_node(n, max_r, max_c, g)
                     max_d = d
-                    # print(d, visited_tile)
+                    loop_tiles = set(visited_tile)
                 continue
             q.appendleft(n)
         visited.add(c_node)
+    
+    print('total', max_r*max_c)
+    print('done identifying loop', len(loop_tiles))
+    print_node(loop_tiles, max_r, max_c, g)
+    # print(max_d)
+    # print(min([x[0] for x in loop_tiles]))
+    # print(min([x[1] for x in loop_tiles]))
+    # print(max([x[0] for x in loop_tiles]))
+    # print(max([x[1] for x in loop_tiles]))
+    # print(max_r)
+    # print(max_c)
+    # exit()
 
-    print(int(max_d/2))
+    q = deque(list(loop_tiles))
+    covered_loop_tiles = set([])
+
+    sr, sc = start_coor
+    # SF-|.LJ7
+    for r in range(max_r):
+        is_inside = False
+        for c in range(max_c):
+            pass
+
+    # while q:
+    #     c_node = q.pop()
+    #     r, c = c_node
+    #     for dr, dc in [
+    #         (-1, 0),
+    #         (1, 0),
+    #         (0, 1),
+    #         (0, -1),
+    #     ]:
+    #         nr = r+dr
+    #         nc = c+dc
+    #         if (nr, nc) in covered_loop_tiles:
+    #             continue
+    #         if nr < 0 or nr >= max_r or nc < 0 or nc >= max_c:
+    #             continue
+    #         if (nr, nc) in loop_tiles:
+    #             continue
+    #         q.appendleft((nr, nc))
+            
+    #     covered_loop_tiles.add(c_node)
+    
+    print('done identifying covered_loop_tiles', len(covered_loop_tiles))
+    print_node(covered_loop_tiles, max_r, max_c, g)
+
+    print(len(covered_loop_tiles) - len(loop_tiles))
+
+
+
+
 
 
 if __name__=='__main__':
