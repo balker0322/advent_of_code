@@ -6,6 +6,24 @@ down = '|F7'
 left = '-7J'
 right = '-FL'
 
+sides = {
+    'F':([(-1,-1), (-1,0), (0,-1)], [(1,1)]),
+    'L':([(1,-1), (1,0), (0,-1)], [(-1,1)]),
+    'J':([(1,1), (1,0), (0,1)], [(-1,-1)]),
+    '7':([(-1,1), (-1,0), (0,1)], [(1,-1)]),
+    '|':([(0,-1)], [(0,1)]),
+    '-':([(-1,0)], [(1,0)]),
+}
+
+connections = {
+    'F':((1,0), (0,1)),
+    'L':((-1,0),(0,1)),
+    'J':((-1,0),(0,-1)),
+    '7':((1,0),(0,-1)),
+    '|':((-1,0),(1,0)),
+    '-':((0,1),(0,-1)),
+}
+
 def get_input_lines():
     return [line.strip() for line in open(0).readlines()]
 
@@ -91,9 +109,8 @@ def main():
             if item=="S":
                 start_coor = (r, c)
             row.append(item)
-        g.append(tuple(row))
+        g.append(row)
 
-    g = tuple(g)
     
     max_r = len(g)
     max_c = len(g[0])
@@ -126,54 +143,203 @@ def main():
     print('total', max_r*max_c)
     print('done identifying loop', len(loop_tiles))
     print_node(loop_tiles, max_r, max_c, g)
-    # print(max_d)
-    # print(min([x[0] for x in loop_tiles]))
-    # print(min([x[1] for x in loop_tiles]))
-    # print(max([x[0] for x in loop_tiles]))
-    # print(max([x[1] for x in loop_tiles]))
-    # print(max_r)
-    # print(max_c)
-    # exit()
 
-    q = deque(list(loop_tiles))
-    covered_loop_tiles = set([])
+
+    # get outside coor
+    q = deque([])
+    for r in range(max_r):
+        for c in range(max_c):
+            if r==0 or r==max_r-1 or c==0 or c==max_c-1:
+                if (r,c) in loop_tiles:
+                    continue
+                q.appendleft((r, c))
+    outside_coors = set([])
+    while q:
+        c_node = q.pop()
+        r, c = c_node
+        for dr, dc in [
+            (0,1),
+            (0,-1),
+            (1,0),
+            (-1,0),
+        ]:
+            nr = r+dr
+            nc = c+dc
+            if nr<0 or nr>=max_r or nc<0 or nc>=max_c:
+                continue
+            n_node = (nr, nc)
+            if n_node in outside_coors:
+                continue
+            if n_node in loop_tiles:
+                continue
+            q.appendleft(n_node)
+        outside_coors.add(c_node)
+
+    print('done outside_coors')
+    print_node(outside_coors, max_r, max_c, g)
+
+
 
     sr, sc = start_coor
-    # SF-|.LJ7
-    for r in range(max_r):
-        is_inside = False
-        for c in range(max_c):
-            pass
+    g[sr][sc] = '7'
 
-    # while q:
-    #     c_node = q.pop()
-    #     r, c = c_node
-    #     for dr, dc in [
-    #         (-1, 0),
-    #         (1, 0),
-    #         (0, 1),
-    #         (0, -1),
-    #     ]:
-    #         nr = r+dr
-    #         nc = c+dc
-    #         if (nr, nc) in covered_loop_tiles:
-    #             continue
-    #         if nr < 0 or nr >= max_r or nc < 0 or nc >= max_c:
-    #             continue
-    #         if (nr, nc) in loop_tiles:
-    #             continue
-    #         q.appendleft((nr, nc))
+    new_start_found = False
+    for r, c in loop_tiles:
+        for dr, dc in [
+            (0,1),
+            (0,-1),
+            (1,0),
+            (-1,0),
+        ]:
+            nr = r+dr
+            nc = c+dc
+            if (nr, nc) in outside_coors:
+                new_start_found = True
+                nsr, nsc = r, c
+                break
+        if new_start_found:
+            break
+
+    print(start_coor, (nsr, nsc))
+
+    q = deque([])
+    q.appendleft((nsr, nsc))
+    visited = set([])
+    inside_coor = set([])
+    orig_outside_coor = set(outside_coors)
+    path_seq = []
+
+    while q:
+        c_node = q.pop()
+        r,c = c_node
+        c_val = g[r][c]
+        for dr, dc in connections[c_val]:
+            nr = r+dr
+            nc = c+dc
+            if nr<0 or nr>=max_r or nc<0 or nc>=max_c:
+                continue
+            n_node = (nr, nc)
+            if n_node in visited:
+                continue
+            side_a, side_b = sides[c_val]
+
+            side_out = side_b
+            side_in = side_a
+            for sr, sc in side_a:
+                if (sr, sc) in outside_coors:
+                    side_out = side_a
+                    side_in = side_b
+                    break
             
-    #     covered_loop_tiles.add(c_node)
+            for sr, sc in side_out:
+                outside_coors.add((nr+sr, nc+sc))
+            for sr, sc in side_in:
+                if (nr+sr, nc+sc) in orig_outside_coor:
+                    continue
+                inside_coor.add((nr+sr, nc+sc))
+            
+            q.appendleft(n_node)
+            break
+
+        path_seq.append(c_node)
+        visited.add(c_node)
     
-    print('done identifying covered_loop_tiles', len(covered_loop_tiles))
-    print_node(covered_loop_tiles, max_r, max_c, g)
 
-    print(len(covered_loop_tiles) - len(loop_tiles))
+    c_node = path_seq[0]
+    r, c = c_node
+    c_val = g[r][c]
+    d_side_a, d_side_b = sides[c_val]
+    
+    side_a = set([])
+    for dr, dc in d_side_a:
+        side_a.add((r+dr, c+dc))
+    side_b = set([])
+    for dr, dc in d_side_b:
+        side_b.add((r+dr, c+dc))
 
+    side_outer = side_b
+    side_inner = side_a
+    if len(side_a.intersection(orig_outside_coor)):
+        side_outer = side_a
+        side_inner = side_b
 
+    inner_coors = set([])
 
+    for r, c in side_inner:
+        node = (r,c)
+        if node in loop_tiles:
+            continue
+        inner_coors.add(node)
+    
+    def expand_set(a):
+        new_a = set([])
+        for r, c in a:
+            new_a.add((r, c))
+            for dr, dc in [
+                (0,1),
+                (0,-1),
+                (1,0),
+                (-1,0)
+            ]:
+                new_a.add((r+dr, c+dc))
+        return new_a
 
+    for i in range(len(path_seq)-1):
+        c_side_inner, c_side_outer = side_inner, side_outer
+
+        r, c = path_seq[i+1]
+        c_val = g[r][c]
+        d_side_a, d_side_b = sides[c_val]
+        
+        side_a = set([])
+        for dr, dc in d_side_a:
+            side_a.add((r+dr, c+dc))
+        side_b = set([])
+        for dr, dc in d_side_b:
+            side_b.add((r+dr, c+dc))
+        
+        side_outer = side_b
+        side_inner = side_a
+        if len(side_a.intersection(expand_set(c_side_outer))):
+            side_outer = side_a
+            side_inner = side_b
+        
+        for r, c in side_inner:
+            node = (r,c)
+            if node in loop_tiles:
+                continue
+            inner_coors.add(node)
+
+    print('initial inner_coors')
+    print_node(inner_coors, max_r, max_c, g)
+
+    q = deque([])
+    for node in inner_coors:
+        q.appendleft(node)
+    visited = set([])
+    while q:
+        c_node = q.pop()
+        r, c = c_node
+        for dr, dc in [
+            (0,1),
+            (0,-1),
+            (1,0),
+            (-1,0)
+        ]:
+            nr = r+dr
+            nc = c+dc
+            if nr<0 or nr>=max_r or nc<0 or nc>=max_c:
+                continue
+            n_node = (nr, nc)
+            if n_node in visited:
+                continue
+            if n_node in loop_tiles:
+                continue
+            q.appendleft(n_node)
+        visited.add(c_node)
+    
+    print(len(visited))
+            
 
 
 if __name__=='__main__':
