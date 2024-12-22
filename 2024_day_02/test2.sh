@@ -1,0 +1,1 @@
+python part2.py < 'test.txt'
